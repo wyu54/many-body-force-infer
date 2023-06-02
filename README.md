@@ -3,8 +3,11 @@ Our project provides a Keras model for predicting particle dynamics in a system 
 
 # requirements
 tensorflow 2.4
+
 sympy
+
 pandas
+
 jupyter notebook 
 
 # tutorial
