@@ -1,10 +1,17 @@
 # many-body-force-infer
-========
-Infer interaction, confinement and damping force from many-body trajectories. 
-The trajectories should be given in a csv file, with columns frame, particle index, and particles' positions. An example is given in 0.75Pa15p_cleared.csv.  
-The code first pre-process the data (the get_data) function which transforms the data into a 3d tensor (the middle dimension puly shifts the data by delta_t and stack together)
-plus a 2d tensor (w convolve v) for the input of data and a 2d tensor (w convolve a) for the output.
-For implementing the model, please check demonstration.ipynb
+Our project provides a Keras model for predicting particle dynamics in a system based on given input conditions. The model utilizes Tensorflow's capabilities and Keras's simplicity, offering a sophisticated solution for studying complex systems.
 
-References
-==========
+# requirements
+tensorflow 2.4
+sympy
+pandas
+jupyter notebook 
+
+# tutorial
+Your data for particle trajectories should be formatted in a .csv file. This file must include columns for the frame index, particle index, and the particle's positional coordinates (x, y, z). One example of data file is shown in 0.75Pa15p_cleared.csv, which is experimental particles' trajectories in dusty plasma, tracked by our own 3D imaging system. 
+
+To begin using the model, start by preprocessing your data with the get_data function. This step is important as it involves the calculation of various particle descriptors.
+
+The processed data will include two components: 'X' and 'Y'. 'X' is a tuple containing two elements: a 3D tensor representing particle positions, and a 2D tensor representing velocity. 'Y', on the other hand, is a 2D tensor representing particle acceleration.
+
+Once you have your preprocessed data, you can proceed to train the model. Details on how to train the model and predict parameters such as gamma, interaction force, and confinement force are provided in the demonstration.ipynb notebook. This resource provides step-by-step instructions to guide you through the entire process.
