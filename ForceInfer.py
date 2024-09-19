@@ -57,7 +57,7 @@ def preprocessdf(filepath = '24V1.00Pa.csv', mass = False):
         print('cannot find zmm')
         pass
 
-    # Set 'frame' and 'particle' as multi-index and drop unneeded columns ('Unnamed: 0', 'tish'/'mass' based on condition, 'time_s').
+    # Set 'frame' and 'particle' as multi-index and drop unneeded columns ('Unnamed: 0', 'temp1'/'mass' based on condition, 'time_s').
     df = df.set_index(['frame','particle'], drop = True).drop(columns = ['Unnamed: 0','tish' if mass else 'mass','time_s'],errors = 'ignore').unstack()
 
     # Return the preprocessed dataframe.
@@ -96,10 +96,10 @@ def w_to_coef(w,tau = 6):
     end = tau + 1 if ws[-1] !=0 else tau
     
     # Apply the weights to the function values ws and convert to float64
-    fucked = (simpson_weights * ws).astype(np.float64)
+    coef = (simpson_weights * ws).astype(np.float64)
     
     # Convert the numpy array to a tensorflow constant and return
-    return tf.constant(fucked[begin:end],dtype = tf.float32)
+    return tf.constant(coef[begin:end],dtype = tf.float32)
 
     
 
@@ -109,7 +109,6 @@ TensorFlow
 '''
 import tensorflow as tf
 import tensorflow.keras as keras
-#import tensorflow_addons as tfa
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Activation, LeakyReLU,Dropout
 from tensorflow.python.keras.engine.base_layer import Layer
@@ -139,9 +138,9 @@ def get_XY(X, w, tau, deltat, ndim = 3, nparticles = 9, whichparticle = 0, gamma
 
     # Re-order the columns of X.
     colidx = list(range(nparticles * ndim))
-    for tish in range(ndim):
-        colidx[tish] = tish + whichparticle * ndim
-        colidx[tish + whichparticle * ndim] = tish
+    for temp1 in range(ndim):
+        colidx[temp1] = temp1 + whichparticle * ndim
+        colidx[temp1 + whichparticle * ndim] = temp1
     X = X[..., colidx]
     
     # Convert X to a 3D array.
@@ -206,17 +205,17 @@ get_XY_all = get_all_XY
 
 def microprocess(df,dz = 2.5):
         ex = 30
-        tish = df.stack().reset_index()
-        tish.frame = tish.frame*ex + round(tish.z/dz*ex).astype(int)
-        frame = tish.frame
-        damn = tish.set_index(['frame','particle']).unstack().reindex(range(frame.min(),frame.max()+1)).interpolate()
-        tish = damn.loc[list(range(ex,frame.max()-ex,ex))].stack().reset_index()
-        tish.frame = tish.frame // (ex)
+        temp1 = df.stack().reset_index()
+        temp1.frame = temp1.frame*ex + round(temp1.z/dz*ex).astype(int)
+        frame = temp1.frame
+        temp2 = temp1.set_index(['frame','particle']).unstack().reindex(range(frame.min(),frame.max()+1)).interpolate()
+        temp1 = temp2.loc[list(range(ex,frame.max()-ex,ex))].stack().reset_index()
+        temp1.frame = temp1.frame // (ex)
         ##################
-        return tish.set_index(['frame','particle']).unstack()
+        return temp1.set_index(['frame','particle']).unstack()
     
     
-def get_data(fname=r'D:\Wentao\2022_videos\0326\17.3V1.00Pa_9p.csv', val_begin=[0.3, 0.7], *a, **kw):
+def get_data(fname, val_begin=[0.3, 0.7], *a, **kw):
     '''
     Parameters
     ----------
@@ -234,35 +233,37 @@ def get_data(fname=r'D:\Wentao\2022_videos\0326\17.3V1.00Pa_9p.csv', val_begin=[
     if '15p' in fname:
         # Only for this specific data
         df = microprocess(df)
-    fucked = df.stack().reset_index()
-    fucked['z'] -= fucked['z'].mean()
-    df = fucked.set_index(['frame', 'particle']).unstack()
+    df = df.stack().reset_index()
+    df['z'] -= df['z'].mean()
+    df = df.set_index(['frame', 'particle']).unstack()
     if '24V' in fname:
+        # Only for this specific data
         df = df.iloc[:-555]
     if 'ndim' in kw and kw['ndim'] == 4:
-        tish = df.stack().reset_index()
-        tish['z'] -= tish['z'].mean()
-        tish['x'] -= tish['x'].mean()
-        tish['y'] -= tish['y'].mean()
+        #calculate s_i, with specified method and scale, if exist in **kw
+        temp1 = df.stack().reset_index()
+        temp1['z'] -= temp1['z'].mean()
+        temp1['x'] -= temp1['x'].mean()
+        temp1['y'] -= temp1['y'].mean()
         nparticles = kw['nparticles']
         method = kw.get('method', 'mean')
         scale = kw.get('scale', 0.1 if nparticles < 10 else 0.2)
         if callable(method):
-            descriptors = [method(tish.loc[tish['particle'] == p, 'z'].values) * scale for p in range(nparticles)]
+            descriptors = [method(temp1.loc[temp1['particle'] == p, 'z'].values) * scale for p in range(nparticles)]
         elif method == 'std':
-            descriptors = tish.groupby('particle')['z'].std() * scale
+            descriptors = temp1.groupby('particle')['z'].std() * scale
         elif method == 'mean':
-            descriptors = tish.groupby('particle')['z'].mean() * scale
+            descriptors = temp1.groupby('particle')['z'].mean() * scale
         else:
             raise ValueError('Method must be "std", "mean", or callable.')
         descriptors -= descriptors.mean()
-        tish['zm'] = descriptors[tish['particle']].values
-        tish = tish.iloc[nparticles:]
-        df = tish.drop(columns='mass', errors='ignore').set_index(['frame', 'particle']).unstack()
+        temp1['zm'] = descriptors[temp1['particle']].values
+        temp1 = temp1.iloc[nparticles:]
+        df = temp1.drop(columns='mass', errors='ignore').set_index(['frame', 'particle']).unstack()
         #print(df.head(5))
     df = df.swaplevel(axis = 1)
     df = df.reindex(sorted(df.columns), axis=1)
-    #return df
+    #separate train test data by the percentiles given at val_begin 
     l = df.values.shape[0]
     begins = [int(l*v) for v in val_begin] + [l+1]
     dur = int(0.1*l/(len(begins)-1))
@@ -295,8 +296,10 @@ def get_data(fname=r'D:\Wentao\2022_videos\0326\17.3V1.00Pa_9p.csv', val_begin=[
     X_tests = tf.concat(X_tests,axis = 0)
     Y_tests = tf.concat(Y_tests,axis = 0)
     V_tests = tf.concat(V_tests,axis = 0)
+    # X, V, Y are 3D tensor, 2D tensor, 2D tensor, as specified in the paper data process section
     return [X_trains,V_trains], [X_tests, V_tests], Y_trains, Y_tests
 
+# basic dense neural net
 class MyDense(keras.Model):
     def __init__(self,n_layers = 3,n_neurons = 10, n_out = 2, **kw):
         super().__init__(**kw)
@@ -330,6 +333,8 @@ class Myint(keras.Model):
     
     @tf.function
     def call(self,inputs):
+        #inputs are: (xself, yself, zself,sself, xother, yother,zother, sother)
+        # outputs are: fij_x*rij, fij_y*rij
         # Computing the squared separation in xy plane and z direction between two particles
         sep_xy2 = tf.math.square(inputs[...,self.n_in+1] - inputs[...,1]) + tf.math.square(inputs[...,self.n_in] - inputs[...,0])
         sep_z2 = tf.math.square(inputs[...,self.n_in+2] - inputs[...,2])
@@ -343,6 +348,7 @@ class Myint(keras.Model):
         # Compute the direction of interaction in xy plane
         dir_xy = inputs[...,self.n_in:self.n_in+2] - inputs[...,0:2]
         dir_xy = tf.einsum('ijk,ij->ijk',dir_xy,sep_r_2)
+        #dir_xy = (delta x/ delta r^2, delta y / delta r^2)
 
         # Prepare the input tensor by stacking the z coordinates and squared separation in xy plane
         Z = tf.stack([inputs[...,2],inputs[...,self.n_in+2],sep_xy2],axis = -1)
@@ -394,7 +400,7 @@ class MyModel1(keras.Model):
         # Dense model for environmental force
         self.F_conf = MyDense(n_layers,conf_neurons,n_out)
 
-        # Weight vector for combining force contributions
+        # Weight vector for combining force contributions(convolution)
         self.weight_vector = tf.cast(weight_vector,tf.float32)
 
         # Dense model for damping coefficient
