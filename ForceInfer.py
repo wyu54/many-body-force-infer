@@ -608,7 +608,7 @@ def cross_val_dat(fname, w, tau, nparticles=9, ndim=4, is64=False, **kw):
             scale = 13 + 5 * ('10p' in fname or '0.75' in fname)
             if '11p' in fname:
                 scale = 25
-            delta = (Y2.numpy().std() * 0.1 + 0.9 * Y1.numpy().std()) * 0.25
+            delta = (Y1.numpy().std()) * 0.25
             print(delta)
 
         # Perform training using Huber loss
