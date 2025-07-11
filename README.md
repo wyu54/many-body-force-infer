@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/648375177.svg)](https://doi.org/10.5281/zenodo.15866619)
+
 # many-body-force-infer
 This code repository serves as a supplement to the paper (https://arxiv.org/abs/2310.05273) "Physics-tailored Machine Learning Reveals Unexpected Physics in Dusty Plasmas", offering a comprehensive implementation of our model for inferring and predicting the dynamics of particles in a given system directly from data inputs. Our implementation provides a user-friendly Keras model with a Tensorflow backend, harnessing the powerful capabilities of Tensorflow while leveraging the simplicity and flexibility of Keras. With this code, researchers and practitioners gain access to a sophisticated yet intuitive solution for studying complex systems and exploring the underlying dynamics of particle interactions. 
 ​
